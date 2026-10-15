@@ -83,6 +83,7 @@ export async function render(container, ctx) {
   const search = container.querySelector('.users-search input');
   const filter = container.querySelector('.users-filter select');
   const count = container.querySelector('.users-count');
+  if (ctx.route?.[1] === 'pending') filter.value = 'pending';
   function draw() {
     const pending = users.filter(user => user.status === 'pending').length;
     count.textContent = `${users.length} ${users.length === 1 ? 'pessoa cadastrada' : 'pessoas cadastradas'} · ${pending} ${pending === 1 ? 'pendente' : 'pendentes'}`;
@@ -99,6 +100,9 @@ export async function render(container, ctx) {
   }
   search.addEventListener('input', draw);
   filter.addEventListener('change', draw);
+  const unsubscribePresence = typeof ctx.auth?.subscribePresence === 'function'
+    ? ctx.auth.subscribePresence(nextPresence => { presence = nextPresence; draw(); })
+    : null;
   container.querySelector('.users-refresh').addEventListener('click', async event => {
     const button = event.currentTarget;
     button.disabled = true;
@@ -121,4 +125,5 @@ export async function render(container, ctx) {
     if (button.dataset.action === 'reset') resetPassword(ctx, user);
   });
   draw();
+  return () => unsubscribePresence?.();
 }

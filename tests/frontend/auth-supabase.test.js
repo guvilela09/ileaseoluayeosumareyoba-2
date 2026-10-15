@@ -3,14 +3,17 @@ import assert from 'node:assert/strict';
 import {createAuth} from '../../src/lib/auth.js';
 import {createApi} from '../../src/lib/api.js';
 
-function fakeClient(session=null) {
+function fakeClient(session=null,{status='SUBSCRIBED',track=async()=>{},initialPresence={'u1':[{userId:'u1'}],'u2':[]},syncTrack=true}={}) {
   const calls=[];
   let stateListener;
+  let presenceState=initialPresence;
+  const presenceListeners=[];
+  let subscribeStatus=status;
   const channel={
-    on:(...args)=>{calls.push(['presence-on',...args]);return channel;},
-    subscribe:callback=>{calls.push(['presence-subscribe']);callback('SUBSCRIBED');return channel;},
-    track:async payload=>{calls.push(['presence-track',payload]);},
-    presenceState:()=>({'u1':[{userId:'u1'}],'u2':[]}),
+    on:(type,options,callback)=>{calls.push(['presence-on',type,options]);if(type==='presence')presenceListeners.push(callback);return channel;},
+    subscribe:callback=>{calls.push(['presence-subscribe']);callback(subscribeStatus);return channel;},
+    track:async payload=>{calls.push(['presence-track',payload]);const result=await track(payload);if(result==='error'||result==='timed out')return result;if(syncTrack){presenceState={...presenceState,[payload.userId]:[{userId:payload.userId}]};presenceListeners.forEach(callback=>callback());}return result||'ok';},
+    presenceState:()=>presenceState,
   };
   const auth={
     getSession:async()=>({data:{session},error:null}),
@@ -22,7 +25,7 @@ function fakeClient(session=null) {
     updateUser:async attributes=>{calls.push(['updateUser',attributes]);return {data:{user:{id:'u1'}},error:null};},
     signOut:async()=>{calls.push(['signOut']);return {error:null};},
   };
-  return {auth,storage:{from:()=>({upload:async(...args)=>({data:{path:args[0]},error:null})})},channel:topic=>{calls.push(['channel',topic]);return channel;},removeChannel:async value=>calls.push(['removeChannel',value.presenceKey]),calls,emit:(event,nextSession)=>stateListener(event,nextSession)};
+  return {auth,storage:{from:()=>({upload:async(...args)=>({data:{path:args[0]},error:null})})},channel:topic=>{calls.push(['channel',topic]);return channel;},removeChannel:async value=>calls.push(['removeChannel',value.presenceKey]),calls,emit:(event,nextSession)=>stateListener(event,nextSession),setPresence:value=>{presenceState=value;presenceListeners.forEach(callback=>callback());},setPresenceStatus:value=>{subscribeStatus=value;}};
 }
 
 test('creates Supabase auth from only public browser configuration',async()=>{
@@ -78,10 +81,56 @@ test('tracks authenticated presence and returns online user states',async()=>{
   const fake=fakeClient();
   const auth=createAuth({supabase:{url:'https://example.supabase.co',publishableKey:'sb_publishable_test'}},()=>fake);
   await auth.startPresence({id:'u1'});
+  await auth.getPresence();
   assert.deepEqual(await auth.getPresence(),{u1:true,u2:false});
   assert.equal(fake.calls.find(call=>call[0]==='channel')[1],'portal-presence');
   assert.equal(fake.calls.some(call=>call[0]==='presence-track'&&call[1].userId==='u1'),true);
   await auth.stopPresence();
+});
+
+test('does not report a user offline before their presence tracking has completed',async()=>{
+  let releaseTrack;
+  const fake=fakeClient(null,{initialPresence:{},track:()=>new Promise(resolve=>{releaseTrack=resolve;})});
+  const auth=createAuth({supabase:{url:'https://example.supabase.co',publishableKey:'sb_publishable_test'}},()=>fake);
+  await auth.startPresence({id:'u1'});
+  let settled=false;
+  const result=auth.getPresence().then(value=>{settled=true;return value;});
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(settled,false);
+  releaseTrack();
+  assert.equal((await result).u1,true);
+});
+
+test('reports the current user online after track succeeds even before the first presence sync',async()=>{
+  const fake=fakeClient(null,{initialPresence:{},syncTrack:false});
+  const auth=createAuth({supabase:{url:'https://example.supabase.co',publishableKey:'sb_publishable_test'}},()=>fake);
+  await auth.startPresence({id:'u1'});
+  assert.deepEqual(await auth.getPresence(),{u1:true});
+  await auth.stopPresence();
+});
+
+test('publishes fresh presence snapshots and treats a Realtime failure as unavailable',async()=>{
+  const fake=fakeClient();
+  const auth=createAuth({supabase:{url:'https://example.supabase.co',publishableKey:'sb_publishable_test'}},()=>fake);
+  await auth.startPresence({id:'u1'});
+  await auth.getPresence();
+  const snapshots=[];
+  const unsubscribe=auth.subscribePresence(value=>snapshots.push(value));
+  fake.setPresence({'u1':[],'u2':[{userId:'u2'}],'u3':[]});
+  assert.deepEqual(snapshots.at(-1),{u1:true,u2:true,u3:false});
+  unsubscribe();
+  await auth.stopPresence();
+  assert.equal(await auth.getPresence(),null);
+
+  const failed=fakeClient(null,{status:'CHANNEL_ERROR'});
+  const unavailable=createAuth({supabase:{url:'https://example.supabase.co',publishableKey:'sb_publishable_test'}},()=>failed);
+  await unavailable.startPresence({id:'u1'});
+  assert.equal(await unavailable.getPresence(),null);
+
+  const trackingFailed=fakeClient(null,{track:async()=>'error'});
+  const trackingUnavailable=createAuth({supabase:{url:'https://example.supabase.co',publishableKey:'sb_publishable_test'}},()=>trackingFailed);
+  await trackingUnavailable.startPresence({id:'u1'});
+  assert.equal(await trackingUnavailable.getPresence(),null);
 });
 
 test('refuses incomplete public configuration without constructing a client',()=>{

@@ -1,7 +1,9 @@
 import './styles.css';
+import './features/notifications.css';
 import {createApi} from './lib/api.js';
 import {ui} from './lib/ui.js';
 import {mountAssistant} from './lib/assistant.js';
+import {notificationMarkup} from './lib/notifications.js';
 import {render as dashboard} from './features/dashboard.js';
 import {render as lists} from './features/lists.js';
 import {render as agenda} from './features/agenda.js';
@@ -16,7 +18,7 @@ const routes={dashboard,lists,agenda,announcements,orixas:culture,members:cultur
 const navigation=[['dashboard','Dashboard','home'],['lists','Lista Bori & Ebó','list'],['agenda','Agenda','calendar',true],['announcements','Comunicados','bell',true],['orixas','Itáns e Orixás','book'],['location','Localização','location'],['about','Quem somos nós','user'],['members','Ilé Asé','users'],['users','Usuários','users',true],['settings','Configurações','settings']];
 const adminRoutes=new Set(['agenda','announcements','users']);
 const app=document.querySelector('#app');
-let config,auth,api,user,state,assistant,pollTimer,authUnsubscribe,sessionVersion=0;
+let config,auth,api,user,state,assistant,pollTimer,authUnsubscribe,routeCleanup,sessionVersion=0,notificationOpen=false;
 const systemTheme=window.matchMedia('(prefers-color-scheme:dark)');
 
 function applyPreferences() {
@@ -27,8 +29,9 @@ function applyPreferences() {
   document.documentElement.style.setProperty('--font-scale',String([1,1.1,1.2].includes(Number(p.fontScale))?Number(p.fontScale):1));
 }
 systemTheme.addEventListener('change',applyPreferences);
-const navigate=path=>{window.location.hash=`/${path}`;};
+const navigate=path=>{notificationOpen=false;updateNotificationControl();window.location.hash=`/${path}`;};
 function avatar(person,className=''){return person.photoUrl?`<img class="user-avatar ${className}" src="${ui.escape(person.photoUrl)}" alt="Foto de ${ui.escape(person.name)}">`:`<span class="user-avatar ${className}" aria-hidden="true">${ui.escape((person.name||'U').slice(0,1).toUpperCase())}</span>`;}
+function updateNotificationControl(){const control=document.querySelector('[data-notification-control]');if(control)control.innerHTML=notificationMarkup(ui,state?.users,user?.role==='admin',notificationOpen);}
 
 function renderLogin(errorMessage='') {
   cleanupPortal();
@@ -60,13 +63,20 @@ function renderPending(){
   document.querySelector('#pending-logout').addEventListener('click',logout);
 }
 
-function cleanupPortal(){assistant?.dispose();assistant=null;clearInterval(pollTimer);Promise.resolve(auth?.stopPresence?.()).catch(()=>{});document.querySelectorAll('dialog').forEach(dialog=>{dialog.close();dialog.remove();});}
+function cleanupPortal(){routeCleanup?.();routeCleanup=null;assistant?.dispose();assistant=null;clearInterval(pollTimer);Promise.resolve(auth?.stopPresence?.()).catch(()=>{});document.querySelectorAll('dialog').forEach(dialog=>{dialog.close();dialog.remove();});}
 async function logout(){++sessionVersion;cleanupPortal();await auth.logout();user=null;state=null;renderLogin();}
 function renderShell(){
   const nav=navigation.filter(item=>!item[3]||user.role==='admin');
-  app.innerHTML=`<div class="portal-shell"><div class="sidebar-overlay"></div><aside class="sidebar" aria-label="Menu principal"><a class="brand" href="#/dashboard"><img class="brand-logo" src="/assets/logo.png" alt="Logo da casa"><span class="brand-name">Ilé Asé<span class="brand-subtitle">Oluaye Osumare Yoba</span></span></a><div class="nav-caption">Nosso espaço</div><nav>${nav.map(([route,label,ic])=>`<a class="nav-item" data-nav="${route}" href="#/${route}">${ui.icon(ic)}<span>${label}</span></a>`).join('')}</nav><div class="sidebar-bottom"><div class="house-note"><strong>Uma casa, muitas histórias.</strong>Nosso espaço de cuidado e memória.</div><div class="sidebar-profile">${avatar(user)}<div class="profile-label"><strong>${ui.escape(user.name)}</strong><span>${user.role==='admin'?'Administrador':'Membro da casa'}</span></div><button class="btn btn-icon" type="button" data-logout aria-label="Sair do sistema">${ui.icon('logout')}</button></div></div></aside><div class="portal-main"><header class="topbar"><div class="topbar-left"><button class="btn btn-icon menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">${ui.icon('menu')}</button><div class="breadcrumb"><span class="breadcrumb-house">Ilé Asé</span><span aria-hidden="true">/</span><strong id="current-section">Dashboard</strong></div></div><div class="topbar-actions"><span class="member-label">${user.role==='admin'?'Administração da casa':'Espaço do membro'}</span><button class="btn btn-icon" type="button" data-dashboard aria-label="Ver comunicados e calendário">${ui.icon('bell')}</button><button class="btn btn-icon" type="button" data-profile aria-label="Abrir meu perfil">${avatar(user)}</button></div></header><main class="page-content" id="page-content" tabindex="-1"></main></div></div>`;
+  app.innerHTML=`<div class="portal-shell"><div class="sidebar-overlay"></div><aside class="sidebar" aria-label="Menu principal"><a class="brand" href="#/dashboard"><img class="brand-logo" src="/assets/logo.png" alt="Logo da casa"><span class="brand-name">Ilé Asé<span class="brand-subtitle">Oluaye Osumare Yoba</span></span></a><div class="nav-caption">Nosso espaço</div><nav>${nav.map(([route,label,ic])=>`<a class="nav-item" data-nav="${route}" href="#/${route}">${ui.icon(ic)}<span>${label}</span></a>`).join('')}</nav><div class="sidebar-bottom"><div class="house-note"><strong>Uma casa, muitas histórias.</strong>Nosso espaço de cuidado e memória.</div><div class="sidebar-profile">${avatar(user)}<div class="profile-label"><strong>${ui.escape(user.name)}</strong><span>${user.role==='admin'?'Administrador':'Membro da casa'}</span></div><button class="btn btn-icon" type="button" data-logout aria-label="Sair do sistema">${ui.icon('logout')}</button></div></div></aside><div class="portal-main"><header class="topbar"><div class="topbar-left"><button class="btn btn-icon menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false">${ui.icon('menu')}</button><div class="breadcrumb"><span class="breadcrumb-house">Ilé Asé</span><span aria-hidden="true">/</span><strong id="current-section">Dashboard</strong></div></div><div class="topbar-actions"><span class="member-label">${user.role==='admin'?'Administração da casa':'Espaço do membro'}</span><div data-notification-control></div><button class="btn btn-icon" type="button" data-profile aria-label="Abrir meu perfil">${avatar(user)}</button></div></header><main class="page-content" id="page-content" tabindex="-1"></main></div></div>`;
+  updateNotificationControl();
   document.querySelector('[data-logout]').addEventListener('click',logout);
-  document.querySelector('[data-dashboard]').addEventListener('click',()=>navigate('dashboard'));
+  const topbarActions=document.querySelector('.topbar-actions');
+  topbarActions.addEventListener('click',event=>{
+    if(event.target.closest('[data-notifications-toggle]')){notificationOpen=!notificationOpen;updateNotificationControl();return;}
+    if(event.target.closest('[data-notification-link]')){notificationOpen=false;updateNotificationControl();return;}
+    if(event.target.closest('[data-dashboard]'))navigate('dashboard');
+  });
+  topbarActions.addEventListener('keydown',event=>{if(event.key==='Escape'&&notificationOpen){notificationOpen=false;updateNotificationControl();topbarActions.querySelector('[data-notifications-toggle]')?.focus();}});
   document.querySelector('[data-profile]').addEventListener('click',()=>navigate('settings'));
   const menu=document.querySelector('.menu-toggle'),sidebar=document.querySelector('.sidebar'),overlay=document.querySelector('.sidebar-overlay');
   const toggleMenu=enabled=>{sidebar.classList.toggle('open',enabled);overlay.classList.toggle('open',enabled);menu.setAttribute('aria-expanded',String(enabled));};
@@ -80,17 +90,21 @@ async function renderRoute(){
   let route=window.location.hash.replace(/^#\/?/,'').split('/').filter(Boolean);if(!route.length)route=['dashboard'];
   if(!routes[route[0]]||(adminRoutes.has(route[0])&&user.role!=='admin')){navigate('dashboard');return;}
   const container=document.querySelector('#page-content');if(!container)return;
+  routeCleanup?.();routeCleanup=null;
   container.onclick=null;
   document.querySelectorAll('[data-nav]').forEach(link=>{const active=link.dataset.nav===route[0];link.classList.toggle('active',active);if(active)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
   document.querySelector('#current-section').textContent=navigation.find(item=>item[0]===route[0])?.[1]||'Dashboard';
-  const ctx={user,state,api,ui,auth,navigate,refresh,route,config,onUserUpdated:updated=>{user=updated;applyPreferences();}};
-  try{await routes[route[0]](container,ctx);}catch(error){container.innerHTML=ui.empty('Não foi possível abrir esta tela',error.message);}
+  const ctx={user,state,api,ui,auth,navigate,refresh:()=>refresh(true),route,config,onUserUpdated:updated=>{user=updated;applyPreferences();}};
+  try{const cleanup=await routes[route[0]](container,ctx);if(typeof cleanup==='function')routeCleanup=cleanup;}catch(error){container.innerHTML=ui.empty('Não foi possível abrir esta tela',error.message);}
 }
-async function refresh(){
+async function refresh(forceRender=false){
   const version=sessionVersion;
   const session=await api('/api/session');if(version!==sessionVersion)return;user=session.user;applyPreferences();
   if(user.status!=='approved'){renderPending();return;}
   const data=await api('/api/bootstrap');if(version!==sessionVersion)return;state=data;
+  updateNotificationControl();
+  const currentRoute=window.location.hash.replace(/^#\/?/,'').split('/').filter(Boolean);
+  if(!forceRender&&['orixas','members'].includes(currentRoute[0])&&currentRoute[1])return;
   // Role changes must update the navigation as well as the current route.
   const expected=navigation.filter(item=>!item[3]||user.role==='admin').length;
   if(document.querySelectorAll('[data-nav]').length!==expected){cleanupPortal();renderShell();startUpdates();}
@@ -107,7 +121,7 @@ async function syncSession(){
   try{
     const session=await api('/api/session');if(version!==sessionVersion)return;user=session.user;applyPreferences();
     if(user.status!=='approved'){renderPending();return;}
-    const data=await api('/api/bootstrap');if(version!==sessionVersion)return;state=data;
+    const data=await api('/api/bootstrap');if(version!==sessionVersion)return;state=data;notificationOpen=false;
     cleanupPortal();renderShell();startUpdates();await renderRoute();
   }catch(error){if(version!==sessionVersion)return;renderLogin(error.message);}
 }

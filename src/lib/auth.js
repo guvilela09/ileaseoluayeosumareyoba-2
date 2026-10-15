@@ -25,27 +25,47 @@ export function createAuth(config,makeClient=createClient,location=globalThis.lo
   let currentUser=null;
   let presence=null;
   let presenceReady=Promise.resolve();
+  let presenceAvailable=false;
+  const presenceListeners=new Set();
   const origin=location?.origin||'';
   const redirectTo=origin?`${origin}/`:undefined;
   async function unwrap(request){const {data,error}=await request;if(error)throw friendly(error);return data;}
-  async function stopPresence(){const channel=presence;presence=null;if(channel)await client.removeChannel(channel).catch(()=>{});}
+  function presenceSnapshot(){
+    if(!presence||!presenceAvailable)return null;
+    try{
+      const snapshot=Object.fromEntries(Object.entries(presence.presenceState()||{}).map(([userId,connections])=>[userId,Array.isArray(connections)&&connections.length>0]));
+      // track() can be acknowledged before the first sync includes this connection.
+      snapshot[presence.presenceKey]=true;
+      return snapshot;
+    }
+    catch{return null;}
+  }
+  function publishPresence(){const snapshot=presenceSnapshot();for(const listener of presenceListeners){try{listener(snapshot);}catch{}}}
+  async function stopPresence(){const channel=presence;presence=null;presenceAvailable=false;publishPresence();if(channel)await client.removeChannel(channel).catch(()=>{});}
   async function startPresence(user){
     if(!user?.id)return;
     if(presence?.presenceKey===user.id)return;
-    void stopPresence();
+    await stopPresence();
     const channel=client.channel('portal-presence',{config:{private:true,presence:{key:user.id}}});
     channel.presenceKey=user.id;
     presence=channel;
-    channel.on('presence',{event:'sync'},()=>{});
+    channel.on('presence',{event:'sync'},publishPresence);
     presenceReady=new Promise(resolve=>{
       let settled=false;
       const finish=()=>{if(settled)return;settled=true;clearTimeout(timeout);resolve();};
-      const timeout=setTimeout(finish,5000);
+      const timeout=setTimeout(()=>{presenceAvailable=false;publishPresence();finish();},5000);
       channel.subscribe(async status=>{
-      if(status==='SUBSCRIBED'&&presence===channel){
-        try{await channel.track({userId:user.id,onlineAt:new Date().toISOString()});}catch{}
-      }
-        if(['SUBSCRIBED','CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status))finish();
+        if(presence!==channel){finish();return;}
+        if(status==='SUBSCRIBED'){
+          try{const result=await channel.track({userId:user.id,onlineAt:new Date().toISOString()});presenceAvailable=presence===channel&&result==='ok';}
+          catch{presenceAvailable=false;}
+          publishPresence();
+          finish();
+        }else if(['CHANNEL_ERROR','TIMED_OUT','CLOSED'].includes(status)){
+          presenceAvailable=false;
+          publishPresence();
+          finish();
+        }
       });
     });
   }
@@ -101,6 +121,7 @@ export function createAuth(config,makeClient=createClient,location=globalThis.lo
     },
     startPresence,
     stopPresence,
-    getPresence:async()=>{await presenceReady;return Object.fromEntries(Object.entries(presence?.presenceState?.()||{}).map(([userId,connections])=>[userId,Array.isArray(connections)&&connections.length>0]));},
+    getPresence:async()=>{await presenceReady;return presenceSnapshot();},
+    subscribePresence:listener=>{presenceListeners.add(listener);listener(presenceSnapshot());return()=>presenceListeners.delete(listener);},
   };
 }

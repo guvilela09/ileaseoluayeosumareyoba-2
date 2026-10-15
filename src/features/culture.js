@@ -1,4 +1,5 @@
 import './culture.css';
+import {cultureDetailMarkup, cultureDetailPath} from '../lib/culture-view.js';
 
 const COLLECTIONS = new Set(['orixas', 'members']);
 const safe = (ui, value) => ui.escape(String(value ?? ''));
@@ -54,24 +55,12 @@ function imageMarkup(ui, item, label) {
     : `<div class="culture-image-empty" aria-label="Imagem aguardando envio pela casa"><span aria-hidden="true">✦</span><small>Imagem em preparação</small></div>`;
 }
 
-function readDialog(ctx, item, label) {
-  const { ui } = ctx;
-  const dialog = document.createElement('dialog');
-  dialog.className = 'culture-detail';
-  const embed = spotifyEmbed(item.spotifyUrl);
-  dialog.innerHTML = `<div class="culture-detail-head"><div><p class="page-kicker">${safe(ui, label)}</p><h2>${safe(ui, item.name)}</h2>${item.alias ? `<p class="culture-alias">${safe(ui, item.alias)}</p>` : ''}</div><button class="btn btn-icon culture-close" type="button" aria-label="Fechar detalhe">${ui.icon('close')}</button></div><div class="culture-detail-image">${imageMarkup(ui, item, label)}</div><div class="culture-description">${item.description ? safe(ui, item.description).replace(/\r?\n/g, '<br>') : '<p class="culture-pending">Descrição aguardando conteúdo da casa.</p>'}</div>${embed ? `<div class="culture-music"><h3>Música</h3><button class="btn btn-secondary culture-play" type="button">${ui.icon('music')} Reproduzir música</button><p class="culture-play-status" aria-live="polite">Se a reprodução não iniciar, use os controles do Spotify abaixo.</p><div class="culture-player"><iframe title="Spotify: ${safe(ui, item.name)}" src="${embed}" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>` : ''}`;
-  document.body.append(dialog);
+function mountPlayer(root, embed) {
   stopPlayer(activePlayer);
-  const session = embed ? { dialog, mount: dialog.querySelector('.culture-player'), controller: null, ready: false, closed: false } : null;
-  if (session) activePlayer = session;
-  const close = () => dialog.close();
-  dialog.querySelector('.culture-close').addEventListener('click', close);
-  dialog.addEventListener('click', event => { if (event.target === dialog) close(); });
-  dialog.addEventListener('close', () => { stopPlayer(session); dialog.remove(); }, { once: true });
-  dialog.showModal();
-  if (!session) return;
-  const status = dialog.querySelector('.culture-play-status');
-  dialog.querySelector('.culture-play').addEventListener('click', () => {
+  const session = { root, mount: root.querySelector('.culture-player'), controller: null, ready: false, closed: false };
+  activePlayer = session;
+  const status = root.querySelector('.culture-play-status');
+  root.querySelector('.culture-play').addEventListener('click', () => {
     if (session.ready && session.controller) {
       try { session.controller.play(); status.textContent = 'Se a reprodução for bloqueada, use os controles do Spotify abaixo.'; }
       catch { status.textContent = 'Use os controles do Spotify abaixo para reproduzir.'; }
@@ -82,23 +71,34 @@ function readDialog(ctx, item, label) {
   });
   const [, , kind, id] = new URL(embed).pathname.split('/');
   loadSpotifyApi().then(api => {
-    if (!api || session.closed || !dialog.isConnected || activePlayer !== session) return;
+    if (!api || session.closed || !root.isConnected || activePlayer !== session) return;
     const fallback = session.mount.innerHTML;
     session.mount.replaceChildren();
     try {
       api.createController(session.mount, { uri: `spotify:${kind}:${id}`, width: '100%', height: 152 }, controller => {
-        if (session.closed || !dialog.isConnected || activePlayer !== session) { try { controller.destroy(); } catch { /* The player was removed. */ } return; }
+        if (session.closed || !root.isConnected || activePlayer !== session) { try { controller.destroy(); } catch { /* The player was removed. */ } return; }
         session.controller = controller;
         controller.addListener('ready', () => {
-          if (session.closed || !dialog.isConnected || activePlayer !== session) return;
+          if (session.closed || !root.isConnected || activePlayer !== session) return;
           session.ready = true;
           try { controller.play(); } catch { status.textContent = 'Use os controles do Spotify abaixo para reproduzir.'; }
         });
       });
     } catch {
-      if (!session.closed && dialog.isConnected) session.mount.innerHTML = fallback;
+      if (!session.closed && root.isConnected) session.mount.innerHTML = fallback;
     }
   });
+  return session;
+}
+
+function detailPage(container, ctx, collection, item, label) {
+  const embed = spotifyEmbed(item.spotifyUrl);
+  container.innerHTML = cultureDetailMarkup(ctx.ui, item, label, embed, ctx.user?.role === 'admin');
+  const root = container.querySelector('.culture-entry-page');
+  root.querySelector('[data-culture-back]').addEventListener('click', () => ctx.navigate(collection));
+  root.querySelector('[data-culture-edit]')?.addEventListener('click', () => editor(ctx, collection, item));
+  const session = embed ? mountPlayer(root, embed) : null;
+  return () => stopPlayer(session);
 }
 
 function editor(ctx, collection, item = null) {
@@ -142,12 +142,25 @@ export async function render(container, ctx) {
   const label = isMembers ? 'Ilé Asé' : 'Itáns e Orixás';
   const items = (ctx.state?.[collection] || []).filter(item => !item.archived);
   const admin = ctx.user?.role === 'admin';
-  container.innerHTML = `<section class="culture-page"><header class="page-heading culture-heading"><div><p class="page-kicker">Nossa casa</p><h1 class="page-title">${label}</h1><p class="page-description">${isMembers ? 'Integrantes apresentados pela casa.' : 'Conheça os nomes e conteúdos compartilhados pela casa.'}</p></div>${admin ? `<button class="btn btn-primary culture-add" type="button">${ctx.ui.icon('plus')} Adicionar</button>` : ''}</header><div class="culture-list">${items.length ? items.map((item, index) => `<article class="culture-card ${index % 2 ? 'culture-card-reverse' : ''}" data-id="${safe(ctx.ui, item.id)}"><div class="culture-card-image">${imageMarkup(ctx.ui, item, label)}</div><div class="culture-card-copy"><p class="page-kicker">${isMembers ? 'Integrante' : 'Orixá'}</p><h2>${safe(ctx.ui, item.name)}</h2>${item.alias ? `<p class="culture-alias">${safe(ctx.ui, item.alias)}</p>` : ''}<p class="culture-excerpt">${item.description ? safe(ctx.ui, item.description) : 'Descrição aguardando conteúdo da casa.'}</p><div class="culture-card-actions"><button class="btn btn-secondary culture-read" type="button">Ler detalhes ${ctx.ui.icon('arrow')}</button>${admin ? `<button class="btn btn-icon culture-edit" type="button" aria-label="Editar ${safe(ctx.ui, item.name)}">${ctx.ui.icon('edit')}</button><button class="btn btn-icon culture-archive" type="button" aria-label="Arquivar ${safe(ctx.ui, item.name)}">${ctx.ui.icon('trash')}</button>` : ''}</div></div></article>`).join('') : ctx.ui.empty('Conteúdo em preparação', isMembers ? 'Os integrantes serão apresentados pela casa.' : 'Os orixás serão apresentados pela casa.')}</div></section>`;
+  if (ctx.route?.[1]) {
+    let itemId = ctx.route[1];
+    try { itemId = decodeURIComponent(itemId); } catch { /* Keep the literal path segment. */ }
+    const item = items.find(entry => String(entry.id) === itemId);
+    if (!item) {
+      container.innerHTML = `<section class="culture-page">${ctx.ui.empty('Conteúdo não encontrado', 'Este item pode ter sido arquivado ou removido.', `<button class="btn btn-secondary" type="button" data-culture-back>Voltar para ${safe(ctx.ui,label)}</button>`)}</section>`;
+      container.querySelector('[data-culture-back]').addEventListener('click', () => ctx.navigate(collection));
+      return;
+    }
+    return detailPage(container, ctx, collection, item, label);
+  }
+  container.innerHTML = `<section class="culture-page"><header class="page-heading culture-heading"><div><p class="page-kicker">Nossa casa</p><h1 class="page-title">${label}</h1><p class="page-description">${isMembers ? 'Integrantes apresentados pela casa.' : 'Conheça os nomes e conteúdos compartilhados pela casa.'}</p></div>${admin ? `<button class="btn btn-primary culture-add" type="button">${ctx.ui.icon('plus')} Adicionar</button>` : ''}</header><div class="culture-list">${items.length ? items.map((item, index) => `<article class="culture-card ${index % 2 ? 'culture-card-reverse' : ''}" data-id="${safe(ctx.ui, item.id)}"><div class="culture-card-image">${imageMarkup(ctx.ui, item, label)}</div><div class="culture-card-copy"><p class="page-kicker">${isMembers ? 'Integrante' : 'Orixá'}</p><h2><button class="culture-title-open" type="button">${safe(ctx.ui, item.name)}</button></h2>${item.alias ? `<p class="culture-alias">${safe(ctx.ui, item.alias)}</p>` : ''}<p class="culture-excerpt">${item.description ? safe(ctx.ui, item.description) : 'Descrição aguardando conteúdo da casa.'}</p><div class="culture-card-actions"><button class="btn btn-secondary culture-read" type="button">Ler detalhes ${ctx.ui.icon('arrow')}</button>${admin ? `<button class="btn btn-icon culture-edit" type="button" aria-label="Editar ${safe(ctx.ui, item.name)}">${ctx.ui.icon('edit')}</button><button class="btn btn-icon culture-archive" type="button" aria-label="Arquivar ${safe(ctx.ui, item.name)}">${ctx.ui.icon('trash')}</button>` : ''}</div></div></article>`).join('') : ctx.ui.empty('Conteúdo em preparação', isMembers ? 'Os integrantes serão apresentados pela casa.' : 'Os orixás serão apresentados pela casa.')}</div></section>`;
   container.querySelector('.culture-add')?.addEventListener('click', () => editor(ctx, collection));
   container.querySelectorAll('.culture-card').forEach(card => {
     const item = items.find(entry => String(entry.id) === card.dataset.id);
     if (!item) return;
-    card.querySelector('.culture-read').addEventListener('click', () => readDialog(ctx, item, label));
+    const openDetail = () => ctx.navigate(cultureDetailPath(collection, item.id));
+    card.querySelector('.culture-read').addEventListener('click', openDetail);
+    card.querySelector('.culture-title-open').addEventListener('click', openDetail);
     card.querySelector('.culture-edit')?.addEventListener('click', () => editor(ctx, collection, item));
     card.querySelector('.culture-archive')?.addEventListener('click', async () => {
       if (!await ctx.ui.confirm(`Arquivar ${item.name}?`)) return;
