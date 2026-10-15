@@ -1,0 +1,72 @@
+.lists-page { max-width: 1120px; margin: 0 auto; padding: clamp(1.25rem, 3vw, 2.5rem); color: var(--text); }
+.lists-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; margin-bottom: 2rem; }
+.lists-heading .page-description { max-width: 58ch; }
+.lists-heading > .btn { flex: none; }
+.lists-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 1.25rem; }
+.lists-card { min-height: 225px; display: flex; flex-direction: column; justify-content: space-between; gap: 1.5rem; padding: 1.5rem; border: 1px solid var(--line); }
+.lists-card h2 { margin: .7rem 0 .5rem; font-family: var(--serif); font-size: clamp(1.35rem, 2vw, 1.75rem); line-height: 1.25; }
+.lists-card p { margin: 0; color: var(--muted); line-height: 1.6; }
+.lists-count { display: inline-flex; padding: .3rem .7rem; border-radius: 999px; color: var(--accent); background: var(--accent-soft); font-size: .78rem; font-weight: 700; }
+.lists-card-actions { display: flex; align-items: center; justify-content: flex-end; gap: .6rem; }
+.lists-card-actions .btn-secondary { display: inline-flex; align-items: center; gap: .5rem; }
+.lists-back { display: inline-flex; align-items: center; gap: .5rem; border: 0; background: none; color: var(--accent); font: inherit; font-weight: 700; cursor: pointer; padding: .4rem 0; margin-bottom: 1.5rem; }
+.lists-back svg { transform: rotate(180deg); }
+.lists-progress { display: grid; gap: .65rem; margin-bottom: 1.25rem; color: var(--muted); font-size: .9rem; font-weight: 600; }
+.lists-progress progress { width: 100%; height: .55rem; border: none; border-radius: 999px; overflow: hidden; background: var(--surface-2); accent-color: var(--accent); }
+.lists-progress progress::-webkit-progress-bar { background: var(--surface-2); }
+.lists-progress progress::-webkit-progress-value { background: var(--accent); border-radius: 999px; }
+.lists-progress progress::-moz-progress-bar { background: var(--accent); border-radius: 999px; }
+.lists-checklist { overflow: hidden; border: 1px solid var(--line); }
+.lists-check-row { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.3rem; cursor: pointer; line-height: 1.5; }
+.lists-check-row + .lists-check-row { border-top: 1px solid var(--line); }
+.lists-check-row:hover { background: var(--surface-2); }
+.lists-check-row input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.lists-check-box { display: inline-flex; align-items: center; justify-content: center; width: 1.45rem; height: 1.45rem; flex: none; border: 1.5px solid var(--muted); border-radius: .35rem; color: transparent; }
+.lists-check-box svg { width: .95rem; height: .95rem; }
+.lists-check-row input:checked + .lists-check-box { color: white; background: var(--accent); border-color: var(--accent); }
+.lists-check-row input:focus-visible + .lists-check-box { outline: 3px solid var(--accent); outline-offset: 3px; }
+.lists-check-row input:disabled + .lists-check-box { opacity: .5; }
+.lists-item-number { width: 2rem; flex: none; color: var(--muted); font-size: .8rem; }
+.lists-item-text { overflow-wrap: anywhere; }
+.lists-check-row input:checked ~ .lists-item-text { color: var(--muted); text-decoration: line-through; }
+.lists-footer { display: flex; justify-content: space-between; align-items: center; gap: 1rem; min-height: 5rem; padding: 1.25rem 0; }
+.lists-complete-badge { display: inline-flex; padding: .55rem .85rem; border-radius: .5rem; background: color-mix(in srgb, var(--success) 13%, var(--surface)); color: var(--success); font-weight: 800; }
+.lists-inline-error { margin: .75rem 0; color: var(--danger); font-weight: 600; }
+.lists-editor { display: grid; gap: 1.5rem; }
+.lists-editor .field-grid { display: grid; gap: 1rem; }
+.lists-editor .form-field { display: grid; gap: .45rem; font-weight: 650; }
+.lists-editor input[type="text"], .lists-editor select, .lists-editor textarea { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: .55rem; padding: .7rem .8rem; background: var(--surface); color: var(--text); font: inherit; }
+.lists-editor textarea { resize: vertical; }
+.lists-editor input:focus-visible, .lists-editor select:focus-visible, .lists-editor textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.lists-import { display: grid; gap: 1rem; padding: 1.25rem; background: var(--surface-2); border: 1px solid var(--line); }
+.lists-import h3, .lists-editor-top h3 { margin: 0 0 .25rem; font-family: var(--serif); font-size: 1.2rem; }
+.lists-import p, .lists-editor-top p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.5; }
+.lists-import-pick { display: flex; align-items: end; gap: .8rem; flex-wrap: wrap; }
+.lists-import-pick .form-field { flex: 1 1 15rem; }
+.lists-import input[type="file"] { max-width: 100%; font: inherit; font-size: .82rem; }
+.lists-import-options { display: grid; gap: .8rem; }
+.lists-import-options fieldset { border: 1px solid var(--line); border-radius: .55rem; padding: .65rem .9rem; }
+.lists-import-options legend { font-weight: 650; padding: 0 .2rem; }
+.lists-columns { display: flex; flex-wrap: wrap; gap: .6rem 1.2rem; }
+.lists-columns label { display: inline-flex; align-items: center; gap: .35rem; font-size: .9rem; }
+.lists-import-warnings { display: grid; gap: .4rem; }
+.lists-import-warnings p { color: var(--danger); }
+.lists-editor-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.lists-editor-rows { display: grid; gap: .6rem; max-height: 42vh; overflow: auto; padding: .15rem .25rem .15rem .1rem; }
+.lists-editor-row { display: flex; align-items: center; gap: .55rem; }
+.lists-row-handle { color: var(--muted); }
+.lists-editor-row .lists-row-text { flex: 1; }
+.lists-row-actions { display: inline-flex; gap: .15rem; }
+.lists-row-actions .btn-icon { width: 2rem; height: 2rem; padding: .25rem; }
+.lists-page :where(button, a):focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 600px) {
+  .lists-heading, .lists-editor-top { flex-direction: column; align-items: stretch; }
+  .lists-heading > .btn, .lists-editor-top > .btn { align-self: flex-start; }
+  .lists-check-row { gap: .65rem; padding: .9rem .8rem; }
+  .lists-item-number { width: 1.5rem; }
+  .lists-footer { flex-wrap: wrap; }
+  .lists-editor-row { align-items: stretch; flex-wrap: wrap; border: 1px solid var(--line); border-radius: .6rem; padding: .5rem; }
+  .lists-row-handle { display: none; }
+  .lists-editor-row .lists-row-text { flex: 1 1 100%; }
+  .lists-row-actions { margin-left: auto; }
+}

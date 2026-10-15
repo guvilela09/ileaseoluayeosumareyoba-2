@@ -1,0 +1,47 @@
+.culture-page { max-width: 1100px; margin: 0 auto; padding: clamp(1.25rem, 3vw, 2.5rem); color: var(--text); }
+.culture-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 1.5rem; margin-bottom: 2.5rem; }
+.culture-heading .page-description { max-width: 38rem; }
+.culture-list { display: grid; gap: clamp(2.5rem, 5vw, 5rem); }
+.culture-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: clamp(1.5rem, 5vw, 5rem); }
+.culture-card-reverse .culture-card-image { order: 2; }
+.culture-card-image, .location-visual { aspect-ratio: 5 / 4; overflow: hidden; border-radius: 1.5rem; background: var(--surface-2); }
+.culture-card-image img, .culture-detail-image img, .location-visual img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.culture-image-empty { width: 100%; height: 100%; min-height: 10rem; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 1rem; color: var(--muted); background: radial-gradient(circle at 50% 45%, var(--accent-soft), var(--surface-2) 68%); text-align: center; padding: 1rem; }
+.culture-image-empty > span { font-family: var(--serif); font-size: clamp(3rem, 7vw, 5rem); color: var(--accent); line-height: 1; }
+.culture-image-empty small { font-size: .85rem; letter-spacing: .03em; }
+.culture-card-copy h2, .culture-detail h2, .location-address h2 { font-family: var(--serif); line-height: 1.12; }
+.culture-card-copy h2 { font-size: clamp(1.9rem, 3.5vw, 3rem); margin: .35rem 0; }
+.culture-alias { color: var(--accent); font-size: .95rem; margin: .25rem 0 1.25rem; }
+.culture-excerpt { color: var(--muted); line-height: 1.7; white-space: pre-line; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+.culture-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-top: 1.4rem; }
+.culture-card-actions .btn { display: inline-flex; align-items: center; gap: .35rem; }
+.culture-detail { width: min(680px, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; border: 1px solid var(--line); border-radius: 1.25rem; padding: clamp(1.25rem, 3vw, 2rem); color: var(--text); background: var(--surface); box-shadow: 0 1.5rem 5rem #0003; }
+.culture-detail::backdrop { background: #17120f99; }
+.culture-detail-head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; }
+.culture-detail-head h2 { margin: .25rem 0; font-size: clamp(1.8rem, 4vw, 2.5rem); }
+.culture-detail-image { height: min(42vw, 280px); min-height: 180px; overflow: hidden; border-radius: 1rem; margin: 1.4rem 0; background: var(--surface-2); }
+.culture-description { line-height: 1.7; white-space: normal; }
+.culture-pending { color: var(--muted); }
+.culture-music { margin-top: 2rem; }
+.culture-music h3 { font-family: var(--serif); margin-bottom: .8rem; }
+.culture-music iframe { display: block; width: 100%; height: 152px; border: 0; border-radius: .8rem; }
+.location-layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 2rem; align-items: stretch; }
+.location-visual { aspect-ratio: 4 / 3; }
+.location-address { height: 100%; padding: clamp(1.5rem, 3vw, 2.5rem); }
+.location-icon { color: var(--accent); }
+.location-address h2 { margin: .9rem 0; font-size: 1.8rem; }
+.location-address p { color: var(--muted); line-height: 1.7; margin-bottom: 1.5rem; }
+.location-map { margin-top: 2rem; overflow: hidden; border-radius: 1.25rem; background: var(--surface-2); }
+.location-map iframe { display: block; width: 100%; height: clamp(280px, 40vw, 460px); border: 0; }
+.location-map-empty { min-height: 280px; display: grid; place-content: center; text-align: center; color: var(--muted); }
+.location-map-empty span { font-size: 3rem; color: var(--accent); }
+.about-page { min-height: min(75dvh, 750px); display: flex; flex-direction: column; }
+.about-tribute { width: min(100%, 460px); aspect-ratio: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 1rem; align-self: center; margin: auto 0; border: 1px dashed var(--line); border-radius: 1.25rem; color: var(--muted); background: var(--surface-2); text-align: center; padding: 1.5rem; }
+.about-tribute span { color: var(--accent); font-size: 4rem; }
+@media (max-width: 700px) {
+  .culture-heading { align-items: flex-start; flex-direction: column; }
+  .culture-card, .location-layout { grid-template-columns: 1fr; }
+  .culture-card-reverse .culture-card-image { order: 0; }
+  .culture-card-image { aspect-ratio: 4 / 3; }
+  .culture-detail-image { height: 230px; }
+}

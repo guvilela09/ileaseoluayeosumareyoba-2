@@ -1,0 +1,17 @@
+Picked up JAVA_TOOL_OPTIONS: -Djdk.net.unixdomain.tmpdir="C:\Users\Vilela Dev\Documents\ChatGPT\ileaseoluayeosumareyoba 2\.runtime\jdk\t"
+20:41:33.306 [NamespaceSystem-akka.actor.default-dispatcher-5] INFO akka.event.slf4j.Slf4jLogger - Slf4jLogger started
+20:41:33.451 [main] INFO com.firebase.server.forge.App$ - Listening at 127.0.0.1:9000
+20:41:37.610 [NamespaceSystem-akka.actor.default-dispatcher-5] INFO com.firebase.core.namespace.NamespaceActor - demo-ilease-default-rtdb successfully activated FBKV (SurveyIdle(0)) wait: 147ms, init: 0ms
+20:41:37.707 [NamespaceSystem-blocking-namespace-operation-dispatcher-7] INFO com.firebase.core.namespace.StateManager - Namespace demo-ilease-default-rtdb status Active to Active
+20:41:40.427 [FirebaseWorkerPool-1-3] WARN com.firebase.core.persistence.backend.dummy.EmulatorMetadataPersistence - Multiple projectIds are not recommended in single project mode. Requested 
+namespace demo-ilease, but the emulator is configured for demo-ilease-default-rtdb. To 
+opt-out of single project mode add/set the singleProjectMode: false property in 
+the firebase.json emulators config. 
+20:41:40.431 [NamespaceSystem-akka.actor.default-dispatcher-6] INFO com.firebase.core.namespace.NamespaceActor - demo-ilease successfully activated FBKV (SurveyIdle(0)) wait: 2ms, init: 0ms
+20:41:40.442 [NamespaceSystem-blocking-namespace-operation-dispatcher-8] INFO com.firebase.core.namespace.StateManager - Namespace demo-ilease status Active to Active
+20:41:44.164 [FirebaseWorkerPool-1-1] WARN com.firebase.server.forge.App$ - Received service account token eyJh...ZX0., assuming ownership.
+20:41:44.288 [FirebaseWorkerPool-1-2] WARN com.firebase.server.forge.App$ - Received service account token eyJh...ZX0., assuming ownership.
+20:41:44.336 [FirebaseWorkerPool-1-3] WARN com.firebase.server.forge.App$ - Received service account token eyJh...ZX0., assuming ownership.
+20:41:44.384 [FirebaseWorkerPool-1-4] WARN com.firebase.server.forge.App$ - Received service account token eyJh...ZX0., assuming ownership.
+20:41:44.448 [FirebaseWorkerPool-1-1] WARN com.firebase.server.forge.App$ - Received service account token eyJh...WV9., assuming ownership.
+20:41:44.557 [FirebaseWorkerPool-1-3] WARN com.firebase.server.forge.App$ - Received service account token eyJh...ZX0., assuming ownership.

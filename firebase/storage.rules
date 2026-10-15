@@ -1,0 +1,17 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function profile() { return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data; }
+    function approved() { return request.auth != null && request.auth.token.email_verified == true && profile().status == 'approved'; }
+    match /uploads/{uid}/{filename} {
+      allow read: if approved() && request.auth.uid == uid && resource.metadata.kind == 'image';
+      allow write: if approved() && request.auth.uid == uid && resource == null && request.resource != null &&
+        request.resource.metadata.ownerUid == uid &&
+        !('firebaseStorageDownloadTokens' in request.resource.metadata) &&
+        ((request.resource.metadata.kind == 'image' && request.resource.size > 0 && request.resource.size <= 5 * 1024 * 1024 &&
+          request.resource.contentType in ['image/png','image/jpeg','image/webp']) ||
+         (request.resource.metadata.kind == 'import' && profile().role == 'admin' && request.resource.size > 0 && request.resource.size <= 10 * 1024 * 1024 &&
+          request.resource.contentType in ['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']));
+    }
+  }
+}

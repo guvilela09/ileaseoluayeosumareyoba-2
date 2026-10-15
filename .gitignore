@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.runtime/
+.local/
+.env
+.env.local
+.env.*.local
+.vercel/
+__pycache__/
+*.pyc
+.pytest_cache/
+functions/venv/
+functions/.env*
+!.env.example
+!functions/.env.example

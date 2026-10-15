@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ab4a18">
+  <title>Assistente · Ilé Asé Oluaye Osumare Yoba</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/assistant.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Ir para o conteúdo</a>
+  <header class="site-header">
+    <a class="wordmark" href="/" aria-label="Ilé Asé Oluaye Osumare Yoba, início"><span class="wordmark-symbol" aria-hidden="true">✦</span><span>Ilé Asé<span class="wordmark-detail">Oluaye Osumare Yoba</span></span></a>
+    <span class="preview-label">Conheça sua assistente</span>
+  </header>
+  <main id="main" class="hero">
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow"><span aria-hidden="true"></span>Um espaço de acolhimento</p>
+      <h1 id="page-title">Sua assistente,<br>sempre por <em>perto.</em></h1>
+      <p class="intro-copy">Uma companhia para ajudar você a encontrar o que precisa e entender as funções do nosso sistema.</p>
+      <button class="primary-button" type="button" data-open-chat>Conversar com a assistente <span aria-hidden="true">↗</span></button>
+      <div class="topic-list" aria-label="Sugestões de perguntas">
+        <p>Podemos começar por aqui:</p>
+        <button type="button" data-question="Como usar a Lista Bori & Ebó?">Como usar as listas <span aria-hidden="true">↗</span></button>
+        <button type="button" data-question="Como redefinir minha senha?">Acesso e senha <span aria-hidden="true">↗</span></button>
+        <button type="button" data-question="Como mudar o tema do sistema?">Aparência do sistema <span aria-hidden="true">↗</span></button>
+      </div>
+    </section>
+    <section class="portrait-section" aria-label="Avatar animado da assistente">
+      <div class="portrait-card">
+        <div class="portrait animated-portrait">
+          <img class="portrait-base" src="/assets/assistant/avatar-open.png" alt="Assistente ilustrada com coroa dourada, roupas e colares em tons de laranja e cobre" width="1254" height="1254" fetchpriority="high">
+          <img class="portrait-eyelids" src="/assets/assistant/avatar-closed.png" alt="" aria-hidden="true" width="1254" height="1254">
+        </div>
+        <div class="portrait-caption"><span class="caption-dot" aria-hidden="true"></span><span>Estou aqui para ajudar</span><span aria-hidden="true">✦</span></div>
+      </div>
+      <button id="motion-toggle" class="motion-toggle" type="button" aria-pressed="false">Pausar animação</button>
+    </section>
+  </main>
+  <footer class="page-footer"><span>Ilé Asé Oluaye Osumare Yoba</span><span>Ajuda sobre o uso do sistema</span></footer>
+  <aside class="chat-panel" id="assistant-panel" role="dialog" aria-modal="false" aria-labelledby="chat-title" hidden>
+    <header class="chat-header"><div><p class="chat-eyebrow">ILÉ ASÉ</p><h2 id="chat-title">Sua assistente</h2></div><button class="icon-button" id="close-chat" type="button" aria-label="Fechar conversa">×</button></header>
+    <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-relevant="additions"><div class="message assistant-message"><p>Olá! Posso ajudar com listas, acesso, comunicados e configurações. Qual é sua dúvida?</p></div></div>
+    <p class="chat-status" id="chat-status" role="status"></p>
+    <form id="chat-form" class="chat-form"><label class="sr-only" for="chat-question">Sua pergunta</label><textarea id="chat-question" name="question" maxlength="500" rows="2" placeholder="Escreva sua dúvida…" required></textarea><button id="send-question" type="submit" aria-label="Enviar pergunta"><span aria-hidden="true">↑</span></button></form>
+    <p class="chat-note">Ajuda de navegação. Não realiza alterações na sua conta.</p>
+  </aside>
+  <button id="assistant-launcher" class="assistant-launcher" type="button" aria-label="Abrir conversa com a assistente" aria-expanded="false" aria-controls="assistant-panel">
+    <span class="portrait animated-portrait"><img class="portrait-base" src="/assets/assistant/avatar-open.png" alt="" aria-hidden="true" width="1254" height="1254"><img class="portrait-eyelids" src="/assets/assistant/avatar-closed.png" alt="" aria-hidden="true" width="1254" height="1254"></span><span class="launcher-badge" aria-hidden="true">?</span>
+  </button>
+</body>
+</html>
