@@ -17,6 +17,7 @@ function fakeClient(session=null,{status='SUBSCRIBED',track=async()=>{},initialP
   };
   const auth={
     getSession:async()=>({data:{session},error:null}),
+    getUser:async()=>({data:{user:{id:'u1'}},error:null}),
     onAuthStateChange:callback=>{stateListener=callback;return {data:{subscription:{unsubscribe(){calls.push(['unsubscribe']);}}}};},
     signInWithOAuth:async options=>{calls.push(['oauth',options]);return {data:{url:'https://accounts.google.test',provider:'google'},error:null};},
     signInWithPassword:async credentials=>{calls.push(['password',credentials]);return {data:{user:{id:'u1'},session:{access_token:'jwt'}},error:null};},
@@ -25,7 +26,7 @@ function fakeClient(session=null,{status='SUBSCRIBED',track=async()=>{},initialP
     updateUser:async attributes=>{calls.push(['updateUser',attributes]);return {data:{user:{id:'u1'}},error:null};},
     signOut:async()=>{calls.push(['signOut']);return {error:null};},
   };
-  return {auth,storage:{from:()=>({upload:async(...args)=>({data:{path:args[0]},error:null})})},channel:topic=>{calls.push(['channel',topic]);return channel;},removeChannel:async value=>calls.push(['removeChannel',value.presenceKey]),calls,emit:(event,nextSession)=>stateListener(event,nextSession),setPresence:value=>{presenceState=value;presenceListeners.forEach(callback=>callback());},setPresenceStatus:value=>{subscribeStatus=value;}};
+  return {auth,storage:{from:()=>({upload:async(...args)=>{calls.push(['storage-upload',args[0]]);return {data:{path:args[0]},error:null};}})},channel:topic=>{calls.push(['channel',topic]);return channel;},removeChannel:async value=>calls.push(['removeChannel',value.presenceKey]),calls,emit:(event,nextSession)=>stateListener(event,nextSession),setPresence:value=>{presenceState=value;presenceListeners.forEach(callback=>callback());},setPresenceStatus:value=>{subscribeStatus=value;}};
 }
 
 test('creates Supabase auth from only public browser configuration',async()=>{
@@ -75,6 +76,18 @@ test('password login, registration and reset use Supabase Auth APIs',async()=>{
   await auth.resetPassword('person@example.com');
   assert.deepEqual(fake.calls.filter(call=>['password','signup','reset'].includes(call[0])).map(call=>call[0]),['password','signup','reset']);
   assert.equal(fake.calls.find(call=>call[0]==='signup')[1].options.data.name,'Pessoa');
+});
+
+test('uploads DOCX files with a Storage-safe ASCII filename',async()=>{
+  const fake=fakeClient();
+  const auth=createAuth({supabase:{url:'https://example.supabase.co',publishableKey:'sb_publishable_test'}},()=>fake);
+  const file=new File(['PK document'],'Ebó Ejiofùn!.docx',{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+
+  const result=await auth.upload(file,'import');
+  const path=fake.calls.find(call=>call[0]==='storage-upload')[1];
+  assert.match(path,/^uploads\/u1\/[0-9a-f-]+-Eb__Ejiof_n_\.docx$/i);
+  assert.doesNotMatch(path,/[\u0080-\uFFFF]/);
+  assert.equal(result.filename,'Eb__Ejiof_n_.docx');
 });
 
 test('tracks authenticated presence and returns online user states',async()=>{

@@ -114,7 +114,9 @@ export function createAuth(config,makeClient=createClient,location=globalThis.lo
       if(!accepted.includes(extension))throw new Error('Formato de arquivo não permitido.');
       if(file.type&&file.type!==MIME[extension])throw new Error('Tipo do arquivo incompatível com a extensão.');
       if(!file.size||file.size>(kind==='image'?5:10)*1024*1024)throw new Error(`Limite: ${kind==='image'?5:10} MB.`);
-      const filename=file.name.replace(/[^\p{L}\p{N}._-]/gu,'_').slice(-120);
+      // Supabase Storage object keys allow only ASCII characters; keep a safe
+      // filename in the path while preserving the extension for validation.
+      const filename=file.name.replace(/[^A-Za-z0-9._-]/g,'_').slice(-120);
       const path=`uploads/${user.id}/${crypto.randomUUID()}-${filename}`;
       await unwrap(client.storage.from(BUCKET).upload(path,file,{contentType:MIME[extension],upsert:false}));
       return {path,filename};
