@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {bindModalCloseControls,followVisualViewport} from '../../src/lib/modal-behavior.js';
+import {bindModalCloseControls,followVisualViewport,keepModalOpenOnUnexpectedClose} from '../../src/lib/modal-behavior.js';
 
 test('modal stays open on backdrop and Escape, and closes only from its explicit close control',()=>{
   const dialog=new EventTarget();
@@ -48,4 +48,22 @@ test('mobile modal tracks the visible viewport and removes listeners when closed
   viewport.height=300;
   viewport.dispatchEvent(new Event('resize'));
   assert.equal(values.get('--modal-viewport-height'),'360px');
+});
+
+test('modal reopens if the mobile file picker unexpectedly closes the native dialog',()=>{
+  const dialog=new EventTarget();
+  dialog.isConnected=true;
+  dialog.open=false;
+  let reopenCount=0;
+  const markClosed=keepModalOpenOnUnexpectedClose(dialog,()=>{reopenCount++;dialog.open=true;});
+
+  dialog.open=false;
+  dialog.dispatchEvent(new Event('close'));
+  assert.equal(dialog.open,true);
+  assert.equal(reopenCount,1);
+
+  markClosed();
+  dialog.open=false;
+  dialog.dispatchEvent(new Event('close'));
+  assert.equal(reopenCount,1);
 });

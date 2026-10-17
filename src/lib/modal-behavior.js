@@ -5,6 +5,15 @@ export function bindModalCloseControls(element, close, isBlocked = () => false) 
   element.addEventListener('cancel', event => event.preventDefault());
 }
 
+export function keepModalOpenOnUnexpectedClose(element, reopen) {
+  let explicitlyClosed = false;
+  element.addEventListener('close', () => {
+    if (explicitlyClosed || !element.isConnected || element.open) return;
+    reopen();
+  });
+  return () => { explicitlyClosed = true; };
+}
+
 export function followVisualViewport(element, viewport = globalThis.visualViewport) {
   if (!viewport) return () => {};
   const update = () => {

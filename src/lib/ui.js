@@ -2,7 +2,7 @@ import Quill from 'quill';
 import DOMPurify from 'dompurify';
 import 'quill/dist/quill.snow.css';
 import {deltaToHTML} from './rich.js';
-import {bindModalCloseControls,followVisualViewport} from './modal-behavior.js';
+import {bindModalCloseControls,followVisualViewport,keepModalOpenOnUnexpectedClose} from './modal-behavior.js';
 
 export const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -48,14 +48,20 @@ export function openModal({ title, body, onSubmit, submitLabel = 'Salvar', wide 
   document.querySelector('#modal-root').append(element);
   let submitting = false;
   let disposeViewport = () => {};
+  const markModalClosed = keepModalOpenOnUnexpectedClose(element, () => {
+    disposeViewport();
+    element.showModal();
+    disposeViewport = followVisualViewport(element);
+  });
   const modal = {element, close: () => {
     if (!element.isConnected) return;
+    markModalClosed();
     disposeViewport();
     element.close(); element.remove();
     if (previousFocus?.isConnected) previousFocus.focus({preventScroll:true});
   }};
   bindModalCloseControls(element, modal.close, () => submitting);
-  element.addEventListener('close', () => disposeViewport(), {once:true});
+  element.addEventListener('close', () => { if (!element.isConnected) disposeViewport(); });
   element.querySelector('form').addEventListener('submit', async event => {
     event.preventDefault();
     if (submitting) return;
