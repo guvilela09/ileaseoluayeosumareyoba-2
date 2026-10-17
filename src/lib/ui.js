@@ -2,6 +2,7 @@ import Quill from 'quill';
 import DOMPurify from 'dompurify';
 import 'quill/dist/quill.snow.css';
 import {deltaToHTML} from './rich.js';
+import {bindModalCloseControls,followVisualViewport} from './modal-behavior.js';
 
 export const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -43,17 +44,18 @@ export function openModal({ title, body, onSubmit, submitLabel = 'Salvar', wide 
   const titleId = `modal-${crypto.randomUUID()}`;
   element.className = `modal ${wide ? 'modal-wide' : ''}`;
   element.setAttribute('aria-labelledby', titleId);
-  element.innerHTML = `<form class="modal-form"><header class="modal-header"><h2 id="${titleId}">${escape(title)}</h2><button class="btn btn-icon" type="button" data-modal-close aria-label="Fechar janela">${icon('close')}</button></header><div class="modal-body">${body}<p class="modal-error" role="alert" hidden></p></div><footer class="modal-footer"><button class="btn btn-secondary" type="button" data-modal-close>Cancelar</button><button class="btn btn-primary" type="submit">${escape(submitLabel)}</button></footer></form>`;
+  element.innerHTML = `<form class="modal-form"><header class="modal-header"><h2 id="${titleId}">${escape(title)}</h2><button class="btn btn-icon" type="button" data-modal-close aria-label="Fechar janela">${icon('close')}</button></header><div class="modal-body">${body}<p class="modal-error" role="alert" hidden></p></div><footer class="modal-footer"><button class="btn btn-primary" type="submit">${escape(submitLabel)}</button></footer></form>`;
   document.querySelector('#modal-root').append(element);
   let submitting = false;
+  let disposeViewport = () => {};
   const modal = {element, close: () => {
     if (!element.isConnected) return;
+    disposeViewport();
     element.close(); element.remove();
     if (previousFocus?.isConnected) previousFocus.focus({preventScroll:true});
   }};
-  element.querySelectorAll('[data-modal-close]').forEach(button => button.addEventListener('click', () => { if (!submitting) modal.close(); }));
-  element.addEventListener('cancel', event => { event.preventDefault(); if (!submitting) modal.close(); });
-  element.addEventListener('click', event => { if (event.target === element && !submitting) { const r = element.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) modal.close(); } });
+  bindModalCloseControls(element, modal.close, () => submitting);
+  element.addEventListener('close', () => disposeViewport(), {once:true});
   element.querySelector('form').addEventListener('submit', async event => {
     event.preventDefault();
     if (submitting) return;
@@ -66,6 +68,7 @@ export function openModal({ title, body, onSubmit, submitLabel = 'Salvar', wide 
     finally { submitting = false; submit.disabled = false; }
   });
   element.showModal();
+  disposeViewport = followVisualViewport(element);
   return modal;
 }
 export function confirm(message) {
