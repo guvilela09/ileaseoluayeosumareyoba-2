@@ -1,6 +1,7 @@
 import './styles.css';
 import './features/notifications.css';
 import {createApi} from './lib/api.js';
+import {shouldSyncSessionForAuthEvent} from './lib/auth-events.js';
 import {ui} from './lib/ui.js';
 import {mountAssistant} from './lib/assistant.js';
 import {notificationMarkup} from './lib/notifications.js';
@@ -129,7 +130,7 @@ window.addEventListener('hashchange',renderRoute);
 async function init(){
   try{
     const response=await fetch('/api/config',{signal:AbortSignal.timeout(10000)});if(!response.ok)throw new Error('O servidor está indisponível. Tente novamente em instantes.');config=await response.json();
-    if(config.mode==='supabase'&&config.configured){const {createAuth}=await import('./lib/auth.js');auth=createAuth(config);api=createApi(()=>auth.getToken(),auth);authUnsubscribe=auth.subscribe((_currentUser,event)=>{if(event==='PASSWORD_RECOVERY')renderPasswordRecovery();else syncSession();});}
+    if(config.mode==='supabase'&&config.configured){const {createAuth}=await import('./lib/auth.js');auth=createAuth(config);api=createApi(()=>auth.getToken(),auth);authUnsubscribe=auth.subscribe((_currentUser,event)=>{if(event==='PASSWORD_RECOVERY')renderPasswordRecovery();else if(shouldSyncSessionForAuthEvent(event))syncSession();});}
     else{auth=null;api=createApi(async()=>null,null);renderLogin();}
   }catch(error){app.innerHTML=`<main class="pending-page" id="page-content"><section class="card pending-card"><h1>Seu espaço está sendo preparado.</h1><p>${ui.escape(error.message)}</p><button class="btn btn-primary" type="button" id="retry-init">Tentar novamente</button></section></main>`;document.querySelector('#retry-init').addEventListener('click',init);}
 }
